@@ -1,0 +1,780 @@
+ 
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Astro Assistant</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <style>
+      :root {
+        /* Navy / pink / blue palette */
+        --p-100: #E5C9D7; /* pale pink */
+        --p-200: #C48CB3; /* mauve */
+        --p-300: #83A6CE; /* light blue */
+        --p-400: #26415E; /* slate */
+        --p-500: #0B1B32; /* deep navy */
+        --navy: #0D1E4C; /* navy */
+        --glass-bg: rgba(255, 255, 255, 0.12);
+        --glass-stroke: rgba(255, 255, 255, 0.25);
+        --glass-blur: blur(14px);
+        --text: #EAF1FF;
+        --muted: #BFD3FF;
+        --ok: #4ade80;
+        --warn: #f59e0b;
+        --danger: #ef4444;
+        --shadow: 0 20px 60px rgba(3, 8, 31, 0.6);
+        --radius-xl: 24px;
+      }
+
+      * { box-sizing: border-box; }
+      html, body {
+        height: 100%;
+        margin: 0;
+        font-family: 'Outfit', system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+        color: var(--text);
+        scroll-behavior: smooth;
+        background: linear-gradient(180deg, var(--navy), var(--p-500));
+      }
+
+      .gradient-bg::before {
+        content: "";
+        position: fixed;
+        inset: -20vh -20vw;
+        background:
+          radial-gradient(60vw 60vh at 20% 10%, rgba(196,140,179,0.28), transparent 60%),
+          radial-gradient(40vw 40vh at 80% 0%, rgba(131,166,206,0.25), transparent 60%),
+          radial-gradient(50vw 60vh at 50% 100%, rgba(38,65,94,0.35), transparent 60%);
+        filter: saturate(110%);
+        z-index: -2; /* leave room for decorative space layer */
+      }
+
+      .section {
+        min-height: 100svh;
+        display: grid;
+        place-items: center;
+        padding: 48px 16px;
+      }
+
+      /* Glass card */
+      .glass {
+        background: var(--glass-bg);
+        border: 1px solid var(--glass-stroke);
+        backdrop-filter: var(--glass-blur);
+        -webkit-backdrop-filter: var(--glass-blur);
+        border-radius: var(--radius-xl);
+        box-shadow: var(--shadow);
+      }
+
+      /* Hero */
+      .hero {
+        width: min(1100px, 92vw);
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 28px;
+        justify-items: center;
+        text-align: center;
+      }
+      @media (min-width: 900px) {
+        .hero { grid-template-columns: 1fr 1.1fr; text-align: left; justify-items: stretch; align-items: center; }
+      }
+
+      .mascot-wrap { position: relative; width: 340px; height: 340px; }
+      @media (min-width: 900px) { .mascot-wrap { width: 420px; height: 420px; } }
+
+      .mascot {
+        width: 100%; height: 100%;
+      }
+      .wave-hand { transform-origin: 75% 35%; animation: wave 1.8s ease-in-out infinite; }
+      @keyframes wave { 0% { transform: rotate(0deg); } 20% { transform: rotate(12deg);} 40% { transform: rotate(-10deg);} 60% { transform: rotate(8deg);} 80% { transform: rotate(-6deg);} 100% { transform: rotate(0deg);} }
+
+
+      .hi-card {
+        padding: 24px 28px;
+        display: inline-flex;
+        align-items: center;
+        gap: 14px;
+        max-width: 560px;
+      }
+      .hi-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--p-300); box-shadow: 0 0 0 6px rgba(131,166,206,0.25); }
+      .hi-text { font-size: 20px; color: var(--muted); }
+      .hi-title { font-size: clamp(34px, 6vw, 56px); font-weight: 800; letter-spacing: 0.2px; line-height: 1.05; margin: 8px 0 0; }
+      .subtext { color: var(--muted); margin-top: 10px; }
+      .cta {
+        margin-top: 24px;
+        display: inline-flex; align-items: center; gap: 12px;
+        padding: 14px 18px;
+        border-radius: 14px;
+        background: linear-gradient(135deg, var(--p-300), var(--p-200));
+        color: #0b1220; font-weight: 700; border: none; cursor: pointer; box-shadow: 0 10px 28px rgba(131,166,206,0.35);
+      }
+      .cta:hover { transform: translateY(-1px); }
+
+      /* Input section */
+      .input-wrap { display: grid; gap: 18px; justify-items: center; }
+      .prompt-line { font-size: 18px; color: var(--muted); }
+      .input-card { width: min(700px, 92vw); display: grid; grid-template-columns: 1fr auto; gap: 12px; padding: 16px; }
+      .input-card input {
+        width: 100%; border: 0; outline: none; color: var(--text);
+        background: transparent; font-size: 18px; padding: 12px 14px;
+      }
+      .btn-primary { background: linear-gradient(135deg, var(--p-300), var(--p-200)); border: none; color: #0b1220; font-weight: 700; padding: 12px 18px; border-radius: 12px; cursor: pointer; }
+      .upload-card { width: min(700px, 92vw); display: grid; gap: 12px; padding: 16px; }
+      .upload-title { font-size: 16px; color: var(--muted); }
+      .dropzone { border: 1px dashed var(--glass-stroke); border-radius: 12px; padding: 18px; text-align: center; color: var(--muted); cursor: pointer; background: var(--glass-bg); }
+      .dropzone.dragover { border-color: var(--p-300); color: #0b1220; background: linear-gradient(135deg, rgba(131,166,206,0.15), rgba(196,140,179,0.12)); }
+      .preview { border-radius: 12px; overflow: hidden; display: grid; place-items: center; background: rgba(11,27,50,0.25); min-height: 160px; }
+      .preview img { max-width: 100%; max-height: 320px; display: none; }
+
+      /* Results pages */
+      .results { width: min(1100px, 94vw); display: none; }
+      .pager { display: grid; grid-template-rows: 1fr; gap: 20px; }
+
+      .page {
+        padding: 18px;
+      }
+
+      /* Page 1 */
+      .p1-grid { display: grid; gap: 18px; }
+      @media (min-width: 900px) {
+        .p1-grid { grid-template-columns: 1fr; }
+      }
+      .inline-top { display: grid; grid-template-columns: 1fr 2fr; gap: 14px; align-items: start; }
+      .product-badge { padding: 12px 14px; font-weight: 700; letter-spacing: 0.4px; }
+      .one-line { padding: 12px 14px; color: var(--muted); }
+      .desc { padding: 18px; line-height: 1.75; color: #e7edff; }
+
+      /* Page 2 */
+      .p2-grid { display: grid; gap: 18px; grid-template-columns: 1fr; }
+      @media (min-width: 1000px) { .p2-grid { grid-template-columns: 1fr 1fr; } }
+      .card { padding: 18px; }
+      .card h3 { margin: 0 0 12px; font-size: 18px; color: var(--muted); font-weight: 600; }
+      .chart-box { position: relative; height: 360px; }
+
+      .rating { display: flex; gap: 8px; align-items: center; justify-content: flex-end; margin-top: 12px; }
+      .star { font-size: 26px; color: #94a3b8; cursor: pointer; transition: color .15s ease; }
+      .star.filled { color: #fbbf24; text-shadow: 0 4px 18px rgba(251,191,36,0.35); }
+
+      /* Pager nav */
+      .pager-nav { display: flex; gap: 10px; justify-content: center; margin-top: 8px; }
+      .pager-btn { background: transparent; border: 1px solid var(--glass-stroke); color: var(--text); padding: 10px 14px; border-radius: 12px; cursor: pointer; }
+      .pager-btn.active { background: var(--glass-bg); }
+
+      /* Utilities */
+      .hide { display: none !important; }
+
+      /* Decision overlay */
+      .decision-overlay {
+        position: fixed; inset: 0; display: none; place-items: center; z-index: 50;
+        background: rgba(0,0,0,0.18);
+      }
+      .decision-card {
+        display: grid; gap: 18px; justify-items: center; text-align: center; padding: 28px; width: min(520px, 92vw);
+      }
+      .circle-glass {
+        width: 180px; height: 180px; border-radius: 999px; display: grid; place-items: center;
+        background: var(--glass-bg); border: 1px solid var(--glass-stroke); backdrop-filter: var(--glass-blur); box-shadow: var(--shadow);
+      }
+      .tick { font-size: 86px; color: var(--ok); }
+      .cross { font-size: 86px; color: var(--danger); }
+      .answer { font-size: 22px; font-weight: 800; color: var(--text); }
+      .popper { font-size: 14px; color: var(--muted); }
+      canvas#confetti { position: fixed; inset: 0; pointer-events: none; z-index: 60; display: none; }
+
+      /* Decision page (Page 3) */
+      .decision-page { display: grid; gap: 18px; place-items: center; text-align: center; padding: 18px; }
+
+      /* Page 4: Stores & best price */
+      .stores-grid { display: grid; gap: 12px; grid-template-columns: 1fr; }
+      @media (min-width: 700px) { .stores-grid { grid-template-columns: 1fr 1fr; } }
+      @media (min-width: 1000px) { .stores-grid { grid-template-columns: 1fr 1fr 1fr; } }
+      @media (min-width: 1400px) { .stores-grid { grid-template-columns: 1fr 1fr 1fr 1fr; } }
+      .store-card { display: grid; gap: 6px; align-content: start; padding: 14px; }
+      .store-head { display: flex; align-items: center; justify-content: space-between; }
+      .store-name { font-weight: 700; letter-spacing: 0.3px; }
+      .badge-cheap { background: linear-gradient(135deg, var(--p-300), var(--p-200)); color: #0b1220; font-weight: 800; padding: 4px 8px; border-radius: 999px; font-size: 11px; }
+      .price { font-size: 18px; font-weight: 800; color: var(--text); }
+      .visit { display: inline-block; margin-top: 2px; color: var(--text); text-decoration: none; opacity: 0.9; }
+      .visit:hover { opacity: 1; text-decoration: underline; }
+
+      /* Page 2 size reductions */
+      #page2.page { padding: 16px; }
+      #page2 .p2-grid { gap: 12px; }
+      #page2 .card { padding: 12px; }
+      #page2 .chart-box { height: 280px; }
+      @media (min-width: 1000px) { #page2 .chart-box { height: 300px; } }
+      #page2 .rating { margin-top: 8px; }
+
+      #page4.page { padding: 10px; }
+      #page4 .card { padding: 8px; }
+      #page4 .stores-grid { gap: 8px; }
+      #page4 .store-card { padding: 10px; }
+      #page4 .store-name { font-size: 13px; }
+      #page4 .price { font-size: 16px; }
+      #page4 h3 { font-size: 15px; margin-bottom: 6px; }
+
+      /* Decorative space background */
+      #stars { position: fixed; inset: 0; z-index: -1; pointer-events: none; }
+      .space-decor { position: fixed; inset: -5vh -5vw; z-index: -1; pointer-events: none; }
+      .space-decor svg { position: absolute; opacity: 0.22; filter: drop-shadow(0 14px 40px rgba(0,0,0,0.35)); }
+      @keyframes float { 0% { transform: translateY(0px); } 50% { transform: translateY(-12px);} 100% { transform: translateY(0px);} }
+      @keyframes drift { 0% { transform: translateX(0px) rotate(0deg);} 50% { transform: translateX(10px) rotate(1.5deg);} 100% { transform: translateX(0px) rotate(0deg);} }
+      .planet-1 { top: 4vh; left: 4vw; width: 180px; animation: float 9s ease-in-out infinite; }
+      .planet-2 { top: 6vh; right: 6vw; width: 140px; animation: drift 12s ease-in-out infinite; }
+      .planet-3 { bottom: 6vh; left: 6vw; width: 160px; animation: float 11s ease-in-out infinite; }
+      .astro-1 { top: 32vh; right: 10vw; width: 120px; animation: drift 10s ease-in-out infinite; }
+      .satellite { bottom: 10vh; right: 8vw; width: 120px; animation: float 13s ease-in-out infinite; }
+    </style>
+  </head>
+  <body class="gradient-bg">
+    <!-- Decorative stars and space elements (behind all content) -->
+    <canvas id="stars"></canvas>
+    <div class="space-decor" aria-hidden="true">
+      <!-- Planet with rings -->
+      <svg class="planet-1" viewBox="0 0 200 200">
+        <defs>
+          <linearGradient id="pl1" x1="0" x2="1">
+            <stop offset="0%" stop-color="#83A6CE" />
+            <stop offset="100%" stop-color="#C48CB3" />
+          </linearGradient>
+        </defs>
+        <circle cx="100" cy="100" r="58" fill="url(#pl1)" />
+        <ellipse cx="100" cy="110" rx="84" ry="24" fill="none" stroke="#E5C9D7" stroke-width="10" opacity="0.7"/>
+        <ellipse cx="100" cy="110" rx="84" ry="24" fill="none" stroke="#0B1B32" stroke-width="2" opacity="0.35"/>
+      </svg>
+      <!-- Crater moon -->
+      <svg class="planet-2" viewBox="0 0 200 200">
+        <circle cx="100" cy="100" r="60" fill="#26415E" />
+        <circle cx="130" cy="80" r="16" fill="#0B1B32" opacity="0.35"/>
+        <circle cx="80" cy="120" r="12" fill="#0B1B32" opacity="0.35"/>
+        <circle cx="70" cy="70" r="8" fill="#0B1B32" opacity="0.35"/>
+      </svg>
+      <!-- Blue planet -->
+      <svg class="planet-3" viewBox="0 0 200 200">
+        <defs>
+          <linearGradient id="pl3" x1="0" x2="1">
+            <stop offset="0%" stop-color="#0D1E4C" />
+            <stop offset="100%" stop-color="#83A6CE" />
+          </linearGradient>
+        </defs>
+        <circle cx="100" cy="100" r="64" fill="url(#pl3)" />
+        <path d="M30 110c30 20 110 20 140 0" stroke="#E5C9D7" stroke-opacity="0.5" stroke-width="6" fill="none"/>
+      </svg>
+      <!-- Astronaut sticker -->
+      <svg class="astro-1" viewBox="0 0 120 160">
+        <g>
+          <circle cx="60" cy="36" r="22" fill="#E5C9D7" />
+          <circle cx="60" cy="36" r="14" fill="#0B1B32" />
+          <rect x="38" y="58" width="44" height="46" rx="10" fill="#E5C9D7" />
+          <rect x="46" y="104" width="12" height="28" rx="6" fill="#E5C9D7" />
+          <rect x="62" y="104" width="12" height="28" rx="6" fill="#E5C9D7" />
+          <rect x="28" y="68" width="16" height="30" rx="8" fill="#E5C9D7" />
+          <rect x="76" y="68" width="16" height="30" rx="8" fill="#E5C9D7" />
+          <circle cx="60" cy="82" r="8" fill="#C48CB3" />
+        </g>
+      </svg>
+      <!-- Satellite -->
+      <svg class="satellite" viewBox="0 0 220 120">
+        <rect x="96" y="44" width="28" height="32" rx="6" fill="#C48CB3" />
+        <rect x="44" y="40" width="44" height="40" rx="6" fill="#26415E" />
+        <rect x="148" y="40" width="44" height="40" rx="6" fill="#26415E" />
+        <rect x="100" y="54" width="20" height="12" fill="#0B1B32" />
+        <circle cx="110" cy="72" r="6" fill="#83A6CE" />
+      </svg>
+    </div>
+    <!-- Section 1: Hero -->
+    <section class="section" id="hero">
+      <div class="hero">
+        <div class="mascot-wrap">
+          <!-- Simple SVG mascot with waving hand -->
+          <svg class="mascot" viewBox="0 0 600 600" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Astro assistant waving">
+            <defs>
+              <linearGradient id="g1" x1="0" x2="1">
+                <stop offset="0%" stop-color="#83A6CE" />
+                <stop offset="100%" stop-color="#C48CB3" />
+              </linearGradient>
+              <linearGradient id="g2" x1="0" x2="1">
+                <stop offset="0%" stop-color="#0D1E4C" />
+                <stop offset="100%" stop-color="#26415E" />
+              </linearGradient>
+              <filter id="s" x="-20%" y="-20%" width="140%" height="140%">
+                <feDropShadow dx="0" dy="18" stdDeviation="20" flood-color="#000" flood-opacity="0.35" />
+              </filter>
+            </defs>
+            <!-- Body -->
+            <g filter="url(#s)">
+              <rect x="130" y="180" rx="36" ry="36" width="340" height="260" fill="url(#g2)" stroke="#83A6CE" stroke-opacity="0.3" stroke-width="3" />
+              <!-- visor -->
+              <rect x="170" y="220" rx="22" ry="22" width="260" height="110" fill="#0B1B32" stroke="#83A6CE" stroke-opacity="0.35" />
+              <circle cx="240" cy="275" r="18" fill="#83A6CE" />
+              <circle cx="320" cy="275" r="18" fill="#C48CB3" />
+              <!-- belly badge -->
+              <circle cx="300" cy="360" r="34" fill="url(#g1)" opacity="0.85" />
+              <!-- left arm -->
+              <rect x="92" y="230" width="44" height="140" rx="22" fill="url(#g2)" />
+              <!-- right arm (waving) -->
+              <g class="wave-hand">
+                <rect x="464" y="210" width="44" height="160" rx="22" fill="url(#g2)" />
+                <circle cx="486" cy="200" r="26" fill="url(#g1)" />
+              </g>
+              <!-- legs -->
+              <rect x="210" y="430" width="60" height="90" rx="18" fill="url(#g2)" />
+              <rect x="330" y="430" width="60" height="90" rx="18" fill="url(#g2)" />
+            </g>
+          </svg>
+        </div>
+
+        <div>
+          <div class="glass hi-card">
+            <span class="hi-dot"></span>
+            <span class="hi-text">Hi, I am</span>
+            <strong>Astro Assistant</strong>
+          </div>
+          <h1 class="hi-title">Your AI Sales Companion</h1>
+          <p class="subtext">I help you decide whether a customer should buy a product or not, based on your dataset.</p>
+          <button id="ctaEnter" class="cta">Start • Ask Astro</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Section 2: Input -->
+    <section class="section" id="input">
+      <div class="input-wrap">
+        <p class="prompt-line">Enter the product name you want assistance with</p>
+        <div class="glass input-card">
+          <input id="productInput" type="text" placeholder="e.g., Premium Headphones" aria-label="Product name" />
+          <button id="submitBtn" class="btn-primary">Enter</button>
+        </div>
+        <div class="glass upload-card">
+          <div class="upload-title">Optionally upload a product image</div>
+          <input id="imageInput" type="file" accept="image/*" hidden />
+          <div id="dropzone" class="dropzone">Click to choose an image or drag & drop here</div>
+          <div class="preview" id="imagePreview">
+            <img id="previewImg" alt="Product preview" />
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Section 3: Results (two pages) -->
+    <section class="section" id="results">
+      <div class="results">
+        <div class="pager">
+          <!-- Page 1 -->
+          <div id="page1" class="page glass">
+            <div class="p1-grid">
+              <div class="inline-top">
+                <div class="glass product-badge" id="badgeProduct">Product</div>
+                <div class="glass one-line" id="oneLiner">A quick take about this product will appear here after processing.</div>
+              </div>
+              <div class="glass desc" id="description">
+                <!-- 6 lines description inserted by JS -->
+              </div>
+            </div>
+          </div>
+
+          <!-- Page 2 -->
+          <div id="page2" class="page glass">
+            <div class="p2-grid">
+              <div class="card">
+                <h3>pie chart</h3>
+                <div class="glass chart-box"><canvas id="pieChart"></canvas></div>
+              </div>
+              <div class="card">
+                <h3>Bar chart</h3>
+                <div class="glass chart-box"><canvas id="barChart"></canvas></div>
+                <div class="rating" id="rating">
+                  <span class="star" data-v="1">★</span>
+                  <span class="star" data-v="2">★</span>
+                  <span class="star" data-v="3">★</span>
+                  <span class="star" data-v="4">★</span>
+                  <span class="star" data-v="5">★</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Page 3: Decision -->
+          <div id="page3" class="page glass">
+            <div class="decision-page">
+              <div class="circle-glass" id="circleIconP3"></div>
+              <div class="answer" id="answerTextP3"></div>
+            </div>
+          </div>
+
+          <!-- Page 4: Where to buy -->
+          <div id="page4" class="page glass">
+            <div class="card" style="padding: 0;">
+              <div class="card" style="border: none;">
+                <h3>Best online price & links</h3>
+                <div class="stores-grid" id="storesGrid"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="pager-nav">
+            <button class="pager-btn active" data-page="1">1</button>
+            <button class="pager-btn" data-page="2">2</button>
+            <button class="pager-btn" data-page="3">3</button>
+            <button class="pager-btn" data-page="4">4</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <script>
+      const cta = document.getElementById('ctaEnter');
+      const inputSection = document.getElementById('input');
+      const submitBtn = document.getElementById('submitBtn');
+      const productInput = document.getElementById('productInput');
+      const resultsWrap = document.querySelector('.results');
+      const badgeProduct = document.getElementById('badgeProduct');
+      const oneLiner = document.getElementById('oneLiner');
+      const desc = document.getElementById('description');
+      const pagerBtns = document.querySelectorAll('.pager-btn');
+      const storesGrid = document.getElementById('storesGrid');
+      const imageInput = document.getElementById('imageInput');
+      const dropzone = document.getElementById('dropzone');
+      const previewImg = document.getElementById('previewImg');
+      const imagePreview = document.getElementById('imagePreview');
+
+      function setPreview(file) {
+        if (!file || !file.type.startsWith('image/')) return;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          previewImg.src = e.target.result;
+          previewImg.style.display = 'block';
+        };
+        reader.readAsDataURL(file);
+      }
+
+      dropzone.addEventListener('click', () => imageInput.click());
+      dropzone.addEventListener('dragover', (e) => { e.preventDefault(); dropzone.classList.add('dragover'); });
+      dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
+      dropzone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropzone.classList.remove('dragover');
+        const file = e.dataTransfer.files && e.dataTransfer.files[0];
+        setPreview(file);
+      });
+      imageInput.addEventListener('change', (e) => {
+        const file = e.target.files && e.target.files[0];
+        setPreview(file);
+      });
+
+      // Animated starfield (background)
+      const starCanvas = document.getElementById('stars');
+      const sctx = starCanvas.getContext('2d');
+      let stars = [];
+      function initStars() {
+        const dpr = window.devicePixelRatio || 1;
+        const { innerWidth: w, innerHeight: h } = window;
+        starCanvas.width = w * dpr; starCanvas.height = h * dpr; starCanvas.style.width = w + 'px'; starCanvas.style.height = h + 'px';
+        sctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        const count = Math.min(600, Math.floor((w * h) / 6000));
+        stars = Array.from({ length: count }, () => ({
+          x: Math.random() * w,
+          y: Math.random() * h,
+          r: Math.random() * 1.6 + 0.3,
+          p: Math.random() * Math.PI * 2,
+          s: 0.002 + Math.random() * 0.006
+        }));
+      }
+      function drawStars(t) {
+        const { innerWidth: w, innerHeight: h } = window;
+        sctx.clearRect(0, 0, w, h);
+        stars.forEach(st => {
+          st.p += st.s;
+          const a = 0.35 + Math.abs(Math.sin(st.p)) * 0.65; // twinkle
+          sctx.globalAlpha = a;
+          sctx.fillStyle = '#ffffff';
+          sctx.beginPath(); sctx.arc(st.x, st.y, st.r, 0, Math.PI * 2); sctx.fill();
+        });
+        requestAnimationFrame(drawStars);
+      }
+      initStars();
+      requestAnimationFrame(drawStars);
+      window.addEventListener('resize', initStars);
+
+      // Color helpers matching navy/pink/blue palette
+      const palette = {
+        blue: '#83A6CE',
+        mauve: '#C48CB3',
+        pink: '#E5C9D7',
+        slate: '#26415E',
+        navy: '#0D1E4C',
+        deep: '#0B1B32',
+        text: '#EAF1FF'
+      };
+
+      // Slide from hero to input
+      cta.addEventListener('click', () => inputSection.scrollIntoView({ behavior: 'smooth' }));
+
+      // Pager control
+      let lastDecisionBuy = false;
+      let confettiFired = false;
+      pagerBtns.forEach(btn => btn.addEventListener('click', (e) => {
+        const page = e.currentTarget.getAttribute('data-page');
+        document.getElementById('page1').style.display = page === '1' ? 'block' : 'none';
+        document.getElementById('page2').style.display = page === '2' ? 'block' : 'none';
+        document.getElementById('page3').style.display = page === '3' ? 'block' : 'none';
+        const p4 = document.getElementById('page4'); if (p4) p4.style.display = page === '4' ? 'block' : 'none';
+        pagerBtns.forEach(b => b.classList.toggle('active', b === e.currentTarget));
+        if (page === '3' && lastDecisionBuy && !confettiFired) { fireConfetti(); confettiFired = true; }
+      }));
+
+      // Initialize page visibility
+      document.getElementById('page1').style.display = 'block';
+      document.getElementById('page2').style.display = 'none';
+      document.getElementById('page3').style.display = 'none';
+      const p4init = document.getElementById('page4'); if (p4init) p4init.style.display = 'none';
+
+      // Build store search URL for a product name
+      function storeSearchUrl(store, product) {
+        const q = encodeURIComponent(product);
+        switch (store) {
+          case 'Amazon India': return `https://www.amazon.in/s?k=${q}`;
+          case 'Flipkart': return `https://www.flipkart.com/search?q=${q}`;
+          case 'Myntra': return `https://www.myntra.com/${q}`;
+          case 'Meesho': return `https://www.meesho.com/search?q=${q}`;
+          case 'AJIO': return `https://www.ajio.com/search/?text=${q}`;
+          case 'Nykaa': return `https://www.nykaa.com/search/result/?q=${q}`;
+          case 'Tata CLiQ': return `https://www.tatacliq.com/search/?searchCategory=all&text=${q}`;
+          case 'Snapdeal': return `https://www.snapdeal.com/search?keyword=${q}`;
+          case 'ShopClues': return `https://www.shopclues.com/search?q=${q}`;
+          case 'Shopsy': return `https://www.shopsy.in/search?q=${q}`;
+          case 'Voonik': return `https://www.voonik.com/search?q=${q}`;
+          case 'IndiaMART': return `https://dir.indiamart.com/search.mp?ss=${q}`;
+          default: return `https://www.google.com/search?q=${q}`;
+        }
+      }
+
+      // Render stores grid with optional pricing
+      function renderStoresGrid(items) {
+        if (!storesGrid) return;
+        let cheapestIdx = -1; let cheapestPrice = Number.POSITIVE_INFINITY;
+        items.forEach((it, i) => {
+          if (typeof it.price === 'number' && isFinite(it.price) && it.price < cheapestPrice) { cheapestPrice = it.price; cheapestIdx = i; }
+        });
+        storesGrid.innerHTML = items.map((it, i) => {
+          const badge = i === cheapestIdx ? '<span class="badge-cheap">Cheapest</span>' : '';
+          const priceText = typeof it.price === 'number' ? `₹${Math.round(it.price).toLocaleString('en-IN')}` : '—';
+          const href = it.url || storeSearchUrl(it.store, it.product || '');
+          return `
+            <div class="glass store-card">
+              <div class="store-head">
+                <div class="store-name">${it.store}</div>
+                ${badge}
+              </div>
+              <div class="price">${priceText}</div>
+              <a class="visit" href="${href}" target="_blank" rel="noopener noreferrer">Visit</a>
+            </div>`;
+        }).join('');
+      }
+
+      // Try to fetch offers from backend, fallback to search links
+      async function fetchOffers(product) {
+        const bases = [
+          'http://localhost:5000',
+          'http://127.0.0.1:5000',
+        ];
+        const STORES = ['Amazon India','Flipkart','Myntra','Meesho','AJIO','Nykaa','Tata CLiQ','Snapdeal','ShopClues','Shopsy','Voonik','IndiaMART'];
+        for (const base of bases) {
+          try {
+            const res = await fetch(`${base}/api/offers?product=${encodeURIComponent(product)}`);
+            if (!res.ok) throw new Error('bad status');
+            const data = await res.json();
+            // expected: [{store, price, url}]
+            if (Array.isArray(data) && data.length) return data;
+          } catch (_) { /* try next */ }
+        }
+        // fallback: no price, only search links
+        return STORES.map(s => ({ store: s, price: null, url: storeSearchUrl(s, product), product }));
+      }
+
+      // Backend processing function with fallbacks and timeout
+      async function processProduct(product) {
+        const bases = [
+          'http://localhost:5000',
+          'http://localhost:5000',
+          'http://127.0.0.1:5000',
+          'http://127.0.0.1:5000',
+        ];
+        const ctrl = new AbortController();
+        const to = setTimeout(() => ctrl.abort('Request timeout'), 8000);
+        let lastErr = null;
+        for (const base of bases) {
+          try {
+            const res = await fetch(base + '/api/analyze', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ product }),
+              signal: ctrl.signal
+            });
+            if (!res.ok) {
+              const msg = await res.text();
+              lastErr = new Error(`Backend error ${res.status}: ${msg}`);
+              continue;
+            }
+            const data = await res.json();
+            clearTimeout(to);
+            return data;
+          } catch (e) {
+            lastErr = e;
+          }
+        }
+        clearTimeout(to);
+        throw lastErr || new Error('Unable to reach backend');
+      }
+
+      function renderDescription(lines) {
+        desc.innerHTML = lines.map(l => `<div>${l}</div>`).join('');
+      }
+
+      let pieChart, barChart;
+      function renderCharts(pie, bar) {
+        const pieCtx = document.getElementById('pieChart');
+        const barCtx = document.getElementById('barChart');
+        if (pieChart) pieChart.destroy();
+        if (barChart) barChart.destroy();
+        pieChart = new Chart(pieCtx, {
+          type: 'pie',
+          data: {
+            labels: pie.labels,
+            datasets: [{
+              data: pie.data,
+              backgroundColor: [palette.blue, palette.mauve, palette.pink],
+              borderColor: palette.deep,
+              borderWidth: 2
+            }]
+          },
+          options: { plugins: { legend: { labels: { color: palette.text } } } }
+        });
+
+        barChart = new Chart(barCtx, {
+          type: 'bar',
+          data: {
+            labels: bar.labels,
+            datasets: [{
+              label: 'Score',
+              data: bar.data,
+              backgroundColor: [palette.navy, palette.slate, palette.blue, palette.mauve, palette.pink],
+              borderRadius: 8
+            }]
+          },
+          options: {
+            scales: {
+              x: { ticks: { color: palette.text }, grid: { color: 'rgba(31,41,55,0.08)' } },
+              y: { ticks: { color: palette.text }, grid: { color: 'rgba(31,41,55,0.08)' }, suggestedMax: 100 }
+            },
+            plugins: { legend: { labels: { color: palette.text } } }
+          }
+        });
+      }
+
+      // Rating stars
+      const ratingEl = document.getElementById('rating');
+      let rating = 0;
+      ratingEl.addEventListener('click', (e) => {
+        const s = e.target.closest('.star');
+        if (!s) return;
+        rating = Number(s.dataset.v);
+        [...ratingEl.querySelectorAll('.star')].forEach(star => star.classList.toggle('filled', Number(star.dataset.v) <= rating));
+      });
+
+      function setRating(v) {
+        rating = v;
+        [...ratingEl.querySelectorAll('.star')].forEach(star => star.classList.toggle('filled', Number(star.dataset.v) <= rating));
+      }
+
+      // Decision overlay + confetti
+      const overlay = document.createElement('div');
+      overlay.className = 'decision-overlay';
+      overlay.innerHTML = `
+        <div class="glass decision-card">
+          <div class="circle-glass" id="circleIcon"></div>
+          <div class="answer" id="answerText"></div>
+          <div class="popper">Click anywhere to dismiss</div>
+        </div>`;
+      document.body.appendChild(overlay);
+
+      const confettiCanvas = document.createElement('canvas');
+      confettiCanvas.id = 'confetti';
+      document.body.appendChild(confettiCanvas);
+
+      function updateDecisionPage(buy) {
+        const circle = document.getElementById('circleIconP3');
+        const text = document.getElementById('answerTextP3');
+        circle.innerHTML = buy ? '<span class="tick">✓</span>' : '<span class="cross">✕</span>';
+        text.textContent = buy ? 'Buy the product' : 'Do not buy the product';
+        lastDecisionBuy = buy;
+      }
+
+      overlay.addEventListener('click', () => { overlay.style.display = 'none'; confettiCanvas.style.display = 'none'; });
+
+      function fireConfetti() {
+        const ctx = confettiCanvas.getContext('2d');
+        const dpr = window.devicePixelRatio || 1;
+        const { innerWidth: w, innerHeight: h } = window;
+        confettiCanvas.width = w * dpr; confettiCanvas.height = h * dpr; confettiCanvas.style.display = 'block';
+        ctx.scale(dpr, dpr);
+        const N = 220;
+        const pieces = Array.from({ length: N }, () => ({
+          x: w/2, y: h/2, r: 4 + Math.random()*6,
+          c: ['#ff3b3b','#ffd93b','#4ade80','#60a5fa','#c084fc','#f472b6','#f97316'][Math.floor(Math.random()*7)],
+          vx: (Math.random()-0.5)*8, vy: (Math.random()-0.9)*10 - 4, g: 0.22 + Math.random()*0.2,
+          rot: Math.random()*Math.PI, vr: (Math.random()-0.5)*0.2
+        }));
+        let t = 0;
+        function tick(){
+          t+=16; ctx.clearRect(0,0,w,h);
+          pieces.forEach(p=>{ p.vy += p.g; p.x += p.vx; p.y += p.vy; p.rot += p.vr; ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.rot); ctx.fillStyle = p.c; ctx.fillRect(-p.r/2,-p.r/2,p.r,p.r); ctx.restore(); });
+          if (t < 1800) requestAnimationFrame(tick); else confettiCanvas.style.display = 'none';
+        }
+        tick();
+      }
+
+      // Handle submit
+      submitBtn.addEventListener('click', async () => {
+        const product = productInput.value.trim();
+        if (!product) { productInput.focus(); return; }
+        resultsWrap.style.display = 'block';
+        document.getElementById('results').scrollIntoView({ behavior: 'smooth' });
+        badgeProduct.textContent = product;
+        oneLiner.textContent = 'Analyzing historical signals and purchase intent...';
+        desc.innerHTML = '<div>Processing...</div>';
+        try {
+          const [analysis, offers] = await Promise.all([
+            processProduct(product),
+            fetchOffers(product)
+          ]);
+          const { verdict, lines, pie, bar, decisionBuy, rating: r } = analysis;
+          oneLiner.textContent = verdict;
+          renderDescription(lines);
+          renderCharts(pie, bar);
+          setRating(r);
+          confettiFired = false; // reset
+          lastDecisionBuy = decisionBuy;
+          updateDecisionPage(decisionBuy);
+          renderStoresGrid(offers);
+        } catch (err) {
+          oneLiner.textContent = 'Unable to process at the moment.';
+          renderDescription(['• Please check your connection.', '• Try again later.']);
+          try {
+            const offers = await fetchOffers(product);
+            renderStoresGrid(offers);
+          } catch (_) { /* ignore */ }
+        }
+      });
+
+      // Enter key support
+      productInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') submitBtn.click();
+      });
+    </script>
+  </body>
+</html>

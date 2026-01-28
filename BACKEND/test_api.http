@@ -1,0 +1,10 @@
+### Test Analyze API (POST)
+POST http://127.0.0.1:5000/api/analyze
+Content-Type: application/json
+
+{
+  "product": "iPhone"
+}
+
+### Test Offers API (GET)
+GET http://127.0.0.1:5000/api/offers?product=iPhone
